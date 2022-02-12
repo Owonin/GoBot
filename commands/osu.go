@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"discord-bot/config"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 var (
@@ -15,6 +18,13 @@ var (
 	api_Url   string = "http://osu.ppy.sh/api/v2"
 	token     string = ""
 )
+
+
+var OsuCommand = Command{
+				Name : "Osu", 
+				Help: "Получение статистики осу",
+				Exec: SendOsuData, 
+}
 
 type Result struct {
 	Result string `json:"access_token"`
@@ -96,7 +106,7 @@ func GetOsuToken() (string, error) {
 
 }
 
-func GetOsuUser(name string) *OsuUserDetail {
+func GetOsuUser(name string) (*OsuUserDetail, error) {
 
 	client := http.Client{}
 	req, err := http.NewRequest("GET", api_Url+"/users/"+name+"/osu", nil)
@@ -123,23 +133,64 @@ func GetOsuUser(name string) *OsuUserDetail {
 
 	res, err := client.Do(req)
 	if err != nil {
-		log.Fatal("Osu request error")
+		log.Panic("Osu request error")
+		return nil,err
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Fatalln(err)
+		log.Panic(err)
+		return nil, err
 	}
 
 	var prettyJSON bytes.Buffer
 	error := json.Indent(&prettyJSON, body, "", "\t")
 	if error != nil {
-		log.Println("JSON parse error: ", error)
+		log.Panic("JSON parse error: ", error)
+		return nil, err
 	}
 
 	log.Println("CSP Violation:", prettyJSON.String())
 
 	var result OsuUserDetail
 	json.Unmarshal(body, &result)
-	return &result
+	return &result, nil
+}
+
+func SendOsuData(s *discordgo.Session, m *discordgo.MessageCreate, strings []string){
+				if len(strings)==0{
+								_,_ = s.ChannelMessageSend(m.ChannelID, "Введите имя или id пользователя")
+								return 
+				}
+				data , err := GetOsuUser(strings[0])
+				if(err!=nil){
+								_,_ = s.ChannelMessageSend(m.ChannelID, "Ошибка при приеме данных с сервера")
+								log.Panic(err)
+				}
+				fields := []*discordgo.MessageEmbedField {
+								{
+												Name:   "Время в игре",                                                                                   
+												Value:  fmt.Sprintf("**%d** часов", data.UserStatistic.Playtime/3600),
+												Inline: false,
+		},
+		{
+			Name:   "Ранг",
+			Value:  fmt.Sprintf("Мировой ранг - **%d**, Ранг в стране - **%d**.\n", data.UserStatistic.GlobalRank, data.UserStatistic.CountryRank),
+			Inline: false,
+		},
+                                                                                                                                                         
+		{
+			Name:   "Статистика",
+			Value:  fmt.Sprintf("Точность - **%f**, PP - **%d**", data.UserStatistic.HitAccuracy, int(data.UserStatistic.Pp)),
+			Inline: false,
+		},
+                                                                                                                                                         
+		{
+			Name:   "Онлайн",
+			Value:  fmt.Sprintf("Онлайн - **%t**,\n Время последнего входа в онлайн - **%s**", data.Is_online, data.Last_visit.Format("2 Jan 2006 15:04:05")),
+			Inline: false,
+		},
+	}
+
+	SendEmmed(s, m, fmt.Sprintf("http://osu.ppy.sh/users/%s",data.Id ), "Cтатистика игрока **"+data.Username+"**", "Osu stats", &fields)	
 }
