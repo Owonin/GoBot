@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,11 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Andreychik32/ytdl"
 	"github.com/Necroforger/dgwidgets"
 	"github.com/Strum355/go-queue/queue"
 	"github.com/bwmarrin/discordgo"
 	"github.com/jonas747/dca"
+	"github.com/kkdai/youtube/v2"
 )
 
 const (
@@ -81,6 +80,8 @@ func msgYoutube(s *discordgo.Session, m *discordgo.MessageCreate, msglist []stri
 }
 
 func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, msglist []string) {
+
+	fmt.Println(msglist[len(msglist)-1])
 	if len(msglist) == 0 {
 		return
 	}
@@ -118,7 +119,8 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, msglist []stri
 		URL:      url,
 		Name:     vid.Title,
 		Duration: vid.Duration,
-		Image:    vid.GetThumbnailURL(ytdl.ThumbnailQualityMedium).String(),
+		//Image: vid.Thumbnails
+		//Image:    vid.GetThumbnailURL(ytdl.ThumbnailQualityMedium).String(),
 	})
 
 	s.ChannelMessageSend(m.ChannelID, "Added "+vid.Title+" to the queue!")
@@ -148,8 +150,14 @@ func createVoiceConnection(s *discordgo.Session, m *discordgo.MessageCreate, gui
 	return nil, errors.New("not in voice channel")
 }
 
-func getVideoInfo(url string, s *discordgo.Session, m *discordgo.MessageCreate) (*ytdl.VideoInfo, error) {
-	vid, err := ytdl.GetVideoInfo(context.Background(), url)
+func getVideoInfo(url string, s *discordgo.Session, m *discordgo.MessageCreate) (*youtube.Video, error) {
+	client := youtube.Client{}
+
+	vid, err := client.GetVideo(url)
+	if err != nil {
+		panic(err)
+	}
+
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "Error getting video info")
 		fmt.Print(err)
@@ -173,29 +181,25 @@ func play(s *discordgo.Session, m *discordgo.MessageCreate, srvr *server, vc *di
 		return
 	}
 
-	reader, writer := io.Pipe()
-	defer reader.Close()
+	client := youtube.Client{}
+	format := vid.Formats.WithAudioChannels()
 
-	formats := vid.Formats.Best(ytdl.FormatAudioBitrateKey)
-	if len(formats) > 0 {
-		go func() {
-			defer writer.Close()
-			if err := ytdl.DefaultClient.Download(context.Background(), vid, formats[0], writer); // (formats[0], writer);
-			err != nil && err != io.ErrClosedPipe {
-				s.ChannelMessageSend(m.ChannelID, " Error downloading the music")
-				log.Panic("error downloading YouTube video", err)
-				srvr.VoiceInst.Done <- err
-				return
-			}
-		}()
+	stream, size, err := client.GetStream(vid, &format[0])
+	fmt.Println(size)
+	defer stream.Close()
+
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, " Error downloading the music")
+		log.Panic("error downloading YouTube video", err)
+		srvr.VoiceInst.Done <- err
+		return
 	}
 
-	encSesh, err := dca.EncodeMem(reader, dca.StdEncodeOptions)
+	encSesh, err := dca.EncodeMem(stream, dca.StdEncodeOptions)
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, " Error starting the stream")
 		srvr.youtubeCleanup()
 		srvr.VoiceInst.Unlock()
-		// will only return non nill error if options arent valid
 		log.Panic("error validating options", err)
 		return
 	}

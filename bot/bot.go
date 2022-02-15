@@ -66,14 +66,14 @@ func messageHandler(s *discordgo.Session, message *discordgo.MessageCreate) {
 	if message.Author.ID == BotId {
 		return
 	}
-	querys := strings.Split(strings.ToLower(message.Content), " ")
+	querys := strings.Split(message.Content, " ")
 	//command := strings.TrimSpace(message.Content)
 
-	//command = strings.ToLower(command)
+	command := strings.ToLower(querys[0])
 
 	//TODO Make message filter
 
-	switch querys[0] {
+	switch command {
 	case "!health":
 		_, _ = s.ChannelMessageSend(message.ChannelID, "is active")
 	case "!ping":
@@ -81,13 +81,11 @@ func messageHandler(s *discordgo.Session, message *discordgo.MessageCreate) {
 	case "!help":
 		_, _ = s.ChannelMessageSend(message.ChannelID, helpMessage)
 	case "!anime":
-				commands.AnimeCommand.Exec(s, message, nil)
+		commands.AnimeCommand.Exec(s, message, nil)
 	case "!osu":
-					commands.OsuCommand.Exec(s,message, querys[1:])
+		commands.OsuCommand.Exec(s, message, querys[1:])
 	case "!youtube":
-					commands.YoutubeCommand.Exec(s, message, querys)
+		commands.YoutubeCommand.Exec(s, message, querys)
 	}
 
-	
 }
-

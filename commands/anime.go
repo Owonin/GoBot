@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-var url = "https://v2.vost.pw/"
+var AnimeUrl = "https://v2.vost.pw/"
 
 var AnimeCommand = Command{
 	Name: "Anime",
@@ -53,7 +53,7 @@ func getHtml(url string) (string, error) {
 
 func GetAnimeList() *[]Anime {
 
-	data, err := getHtml(url)
+	data, err := getHtml(AnimeUrl)
 
 	//todo сделать тип для передачи аним
 	AnimeList := []Anime{}
