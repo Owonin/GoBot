@@ -19,11 +19,10 @@ var (
 	token     string = ""
 )
 
-
 var OsuCommand = Command{
-				Name : "Osu", 
-				Help: "Получение статистики осу",
-				Exec: SendOsuData, 
+	Name: "Osu",
+	Help: "Получение статистики осу",
+	Exec: SendOsuData,
 }
 
 type Result struct {
@@ -134,7 +133,7 @@ func GetOsuUser(name string) (*OsuUserDetail, error) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Panic("Osu request error")
-		return nil,err
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
@@ -157,34 +156,34 @@ func GetOsuUser(name string) (*OsuUserDetail, error) {
 	return &result, nil
 }
 
-func SendOsuData(s *discordgo.Session, m *discordgo.MessageCreate, strings []string){
-				if len(strings)==0{
-								_,_ = s.ChannelMessageSend(m.ChannelID, "Введите имя или id пользователя")
-								return 
-				}
-				data , err := GetOsuUser(strings[0])
-				if(err!=nil){
-								_,_ = s.ChannelMessageSend(m.ChannelID, "Ошибка при приеме данных с сервера")
-								log.Panic(err)
-				}
-				fields := []*discordgo.MessageEmbedField {
-								{
-												Name:   "Время в игре",                                                                                   
-												Value:  fmt.Sprintf("**%d** часов", data.UserStatistic.Playtime/3600),
-												Inline: false,
+func SendOsuData(s *discordgo.Session, m *discordgo.MessageCreate, strings []string) {
+	if len(strings) == 0 {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Введите имя или id пользователя")
+		return
+	}
+	data, err := GetOsuUser(strings[0])
+	if err != nil {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Ошибка при приеме данных с сервера")
+		log.Panic(err)
+	}
+	fields := []*discordgo.MessageEmbedField{
+		{
+			Name:   "Время в игре",
+			Value:  fmt.Sprintf("**%d** часов", data.UserStatistic.Playtime/3600),
+			Inline: false,
 		},
 		{
 			Name:   "Ранг",
 			Value:  fmt.Sprintf("Мировой ранг - **%d**, Ранг в стране - **%d**.\n", data.UserStatistic.GlobalRank, data.UserStatistic.CountryRank),
 			Inline: false,
 		},
-                                                                                                                                                         
+
 		{
 			Name:   "Статистика",
 			Value:  fmt.Sprintf("Точность - **%f**, PP - **%d**", data.UserStatistic.HitAccuracy, int(data.UserStatistic.Pp)),
 			Inline: false,
 		},
-                                                                                                                                                         
+
 		{
 			Name:   "Онлайн",
 			Value:  fmt.Sprintf("Онлайн - **%t**,\n Время последнего входа в онлайн - **%s**", data.Is_online, data.Last_visit.Format("2 Jan 2006 15:04:05")),
@@ -192,5 +191,5 @@ func SendOsuData(s *discordgo.Session, m *discordgo.MessageCreate, strings []str
 		},
 	}
 
-	SendEmmed(s, m, fmt.Sprintf("http://osu.ppy.sh/users/%s",data.Id ), "Cтатистика игрока **"+data.Username+"**", "Osu stats", &fields)	
+	SendEmmed(s, m, fmt.Sprintf("http://osu.ppy.sh/users/%s", data.Id), "Cтатистика игрока **"+data.Username+"**", "Osu stats", &fields)
 }

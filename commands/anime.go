@@ -12,11 +12,10 @@ import (
 
 var url = "https://v2.vost.pw/"
 
-
 var AnimeCommand = Command{
-				Name : "Anime", 
-				Help: "Получение списка послежних вышедших аниме и ссылка на них.",
-				Exec: ViewAnime,
+	Name: "Anime",
+	Help: "Получение списка послежних вышедших аниме и ссылка на них.",
+	Exec: ViewAnime,
 }
 
 type Anime struct {
@@ -90,7 +89,7 @@ func GetAnimeList() *[]Anime {
 						if c.Type == html.ElementNode && c.Data == "a" {
 
 							var title = strings.Split(c.FirstChild.Data, " / ")[0]
-						//	var titleEn = strings.Split(" / ", c.FirstChild.Data)[2]
+							//	var titleEn = strings.Split(" / ", c.FirstChild.Data)[2]
 
 							AnimeList = append(AnimeList, Anime{title, "", c.Attr[0].Val})
 
@@ -113,15 +112,15 @@ func GetAnimeList() *[]Anime {
 
 }
 
-func ViewAnime(s *discordgo.Session, m *discordgo.MessageCreate, strings []string){
-				animeList := *GetAnimeList()
-				var fields []*discordgo.MessageEmbedField  
-				for _,anime := range animeList{
-			fields	 = append(fields, &discordgo.MessageEmbedField{
-								Name: anime.Title,
-								Value: fmt.Sprintf("||%s||", anime.Url),
-								Inline: false,
-					})
-				}
-				SendEmmed(s, m, "", "Список аниме на данный момент:", "Список аниме", &fields)
+func ViewAnime(s *discordgo.Session, m *discordgo.MessageCreate, strings []string) {
+	animeList := *GetAnimeList()
+	var fields []*discordgo.MessageEmbedField
+	for _, anime := range animeList {
+		fields = append(fields, &discordgo.MessageEmbedField{
+			Name:   anime.Title,
+			Value:  fmt.Sprintf("||%s||", anime.Url),
+			Inline: false,
+		})
+	}
+	SendEmmed(s, m, "", "Список аниме на данный момент:", "Список аниме", &fields)
 }

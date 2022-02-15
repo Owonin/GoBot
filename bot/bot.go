@@ -84,7 +84,10 @@ func messageHandler(s *discordgo.Session, message *discordgo.MessageCreate) {
 				commands.AnimeCommand.Exec(s, message, nil)
 	case "!osu":
 					commands.OsuCommand.Exec(s,message, querys[1:])
+	case "!youtube":
+					commands.YoutubeCommand.Exec(s, message, querys)
 	}
 
+	
 }
 
