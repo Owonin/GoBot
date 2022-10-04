@@ -22,11 +22,23 @@ const (
 	embedURL = "https://www.youtube.com/embed/"
 )
 
-var srvr = server{
-	//LogChannel:  s.State.Guilds[len(s.State.Guilds)-1].ID,
-	Log:         false,
-	Nsfw:        false,
-	JoinMessage: [3]string{"false", "", ""},
+var (
+	srvr = server{
+		//LogChannel:  s.State.Guilds[len(s.State.Guilds)-1].ID,
+		Log:         false,
+		Nsfw:        false,
+		JoinMessage: [3]string{"false", "", ""},
+	}
+
+	youtubeCommand = Command{
+		CommandName: "youtube",
+		Help:        "Воспроизведение видио в аудиочат",
+		Exec:        msgYoutube,
+	}
+)
+
+func init() {
+	NewCommand(&youtubeCommand)
 }
 
 type voiceInst struct {
@@ -51,20 +63,16 @@ type song struct {
 	Duration time.Duration `json:"duration"`
 }
 
-var YoutubeCommand = Command{
-	Name: "Youtube",
-	Help: "Воспроизведение видио в аудиочат",
-	Exec: msgYoutube,
-}
-
 func msgYoutube(s *discordgo.Session, m *discordgo.MessageCreate, msglist []string) {
+
+	fmt.Print(msglist[0])
 	if len(msglist) == 1 {
 		return
 	}
 
-	switch msglist[1] {
+	switch msglist[0] {
 	case "play":
-		addToQueue(s, m, msglist[2:])
+		addToQueue(s, m, msglist[1:])
 	case "stop":
 		stopQueue(s, m)
 	case "list", "queue", "songs":
@@ -101,7 +109,7 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, msglist []stri
 	url := msglist[0]
 
 	if !strings.HasPrefix(url, stdURL) && !strings.HasPrefix(url, shortURL) && !strings.HasPrefix(url, embedURL) {
-		s.ChannelMessageSend(m.ChannelID, "Please make sure the URL is a valid YouTube URL. If I got this wrong, please let my creator know~")
+		s.ChannelMessageSend(m.ChannelID, "Please make sure the URL is a valid YouTube URL. If I got this wrong, please let my creator know ~owo")
 		return
 	}
 
@@ -112,6 +120,7 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, msglist []stri
 
 	vc, err := createVoiceConnection(s, m, guild, &srvr)
 	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "Need to be in a voice channel!")
 		return
 	}
 
@@ -123,7 +132,7 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, msglist []stri
 		//Image:    vid.GetThumbnailURL(ytdl.ThumbnailQualityMedium).String(),
 	})
 
-	s.ChannelMessageSend(m.ChannelID, "Added "+vid.Title+" to the queue!")
+	s.ChannelMessageSend(m.ChannelID, "Добавлено "+vid.Title+" в список воспроизведений!")
 
 	if !srvr.VoiceInst.Playing {
 		srvr.VoiceInst.VoiceCon = vc
@@ -132,7 +141,6 @@ func addToQueue(s *discordgo.Session, m *discordgo.MessageCreate, msglist []stri
 		go play(s, m, &srvr, vc)
 	}
 
-	s.ChannelMessageSend(m.ChannelID, "Need to be in a voice channel!")
 }
 
 func createVoiceConnection(s *discordgo.Session, m *discordgo.MessageCreate, guild *discordgo.Guild, srvr *server) (*discordgo.VoiceConnection, error) {
@@ -169,7 +177,7 @@ func getVideoInfo(url string, s *discordgo.Session, m *discordgo.MessageCreate) 
 func play(s *discordgo.Session, m *discordgo.MessageCreate, srvr *server, vc *discordgo.VoiceConnection) {
 	if srvr.queueLength() == 0 {
 		srvr.youtubeCleanup()
-		s.ChannelMessageSend(m.ChannelID, "🔇 Done queue!")
+		s.ChannelMessageSend(m.ChannelID, "🔇 Список видио закончен!")
 		return
 	}
 
@@ -207,7 +215,7 @@ func play(s *discordgo.Session, m *discordgo.MessageCreate, srvr *server, vc *di
 
 	srvr.VoiceInst.StreamingSession = dca.NewStream(encSesh, vc, srvr.VoiceInst.Done)
 
-	s.ChannelMessageSend(m.ChannelID, "🔊 Playing: "+vid.Title)
+	s.ChannelMessageSend(m.ChannelID, "🔊 Играет: "+vid.Title)
 
 	srvr.VoiceInst.Unlock()
 
@@ -220,10 +228,10 @@ Outer:
 		switch {
 		case err.Error() == "stop":
 			srvr.youtubeCleanup()
-			s.ChannelMessageSend(m.ChannelID, "🔇 Stopped")
+			s.ChannelMessageSend(m.ChannelID, "🔇 Остановлено")
 			return
 		case err.Error() == "skip":
-			s.ChannelMessageSend(m.ChannelID, "⏩ Skipping")
+			s.ChannelMessageSend(m.ChannelID, "⏩ Пропуск")
 			break Outer
 		case !done && err != io.EOF:
 			srvr.youtubeCleanup()
@@ -248,7 +256,7 @@ func listQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if srvr.queueLength() == 0 {
-		s.ChannelMessageSend(m.ChannelID, "No songs in queue!")
+		s.ChannelMessageSend(m.ChannelID, "Нету видио в очереди!")
 		return
 	}
 
@@ -296,10 +304,7 @@ func pauseQueue(s *discordgo.Session, m *discordgo.MessageCreate) {
 	srvr.VoiceInst.Lock()
 	defer srvr.VoiceInst.Unlock()
 
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("⏸ Paused. To unpause, use the command `%syt unpause`", func() string {
-
-		return srvr.Prefix
-	}()))
+	s.ChannelMessageSend(m.ChannelID, "⏸ Пауза. Для продолжения используйте команду `!yt unpause`")
 
 	srvr.VoiceInst.StreamingSession.SetPaused(true)
 }

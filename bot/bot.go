@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -60,32 +59,12 @@ func Start() {
 
 }
 
-//Definition of messageHandler function it takes two arguments first one is discordgo.Session which is s , second one is discordgo.MessageCreate which is m.
-func messageHandler(s *discordgo.Session, message *discordgo.MessageCreate) {
-	//Bot musn't reply to it's own messages , to confirm it we perform this check.
-	if message.Author.ID == BotId {
+func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	if m.Author.ID == BotId {
 		return
 	}
-	querys := strings.Split(message.Content, " ")
-	//command := strings.TrimSpace(message.Content)
 
-	command := strings.ToLower(querys[0])
-
-	//TODO Make message filter
-
-	switch command {
-	case "!health":
-		_, _ = s.ChannelMessageSend(message.ChannelID, "is active")
-	case "!ping":
-		_, _ = s.ChannelMessageSend(message.ChannelID, "pong")
-	case "!help":
-		_, _ = s.ChannelMessageSend(message.ChannelID, helpMessage)
-	case "!anime":
-		commands.AnimeCommand.Exec(s, message, nil)
-	case "!osu":
-		commands.OsuCommand.Exec(s, message, querys[1:])
-	case "!youtube":
-		commands.YoutubeCommand.Exec(s, message, querys)
-	}
+	commands.ParseCommand(s, m)
 
 }
