@@ -39,13 +39,6 @@ type server struct {
 }
 
 
-/*
-func (s *servers) validate() {
-	for _, guild := range s.Server {
-		details := guildDetails(guild.ID)
-	}
-} */
-
 func (s *server) newVoiceInstance() {
 	s.VoiceInst = &voiceInst{
 		Queue:   queue.New(),

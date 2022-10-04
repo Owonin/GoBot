@@ -17,12 +17,16 @@ var (
 	token_Url string = "http://osu.ppy.sh/oauth/token"
 	api_Url   string = "http://osu.ppy.sh/api/v2"
 	token     string = ""
+
+	osuCommand = Command{
+		CommandName: "osu",
+		Help:        "Получение статистики осу",
+		Exec:        SendOsuData,
+	}
 )
 
-var OsuCommand = Command{
-	Name: "Osu",
-	Help: "Получение статистики осу",
-	Exec: SendOsuData,
+func init() {
+	NewCommand(&osuCommand)
 }
 
 type Result struct {
@@ -89,6 +93,7 @@ func GetOsuToken() (string, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+
 	res, err := client.Do(req)
 	if err != nil {
 		return "", err
@@ -191,5 +196,5 @@ func SendOsuData(s *discordgo.Session, m *discordgo.MessageCreate, strings []str
 		},
 	}
 
-	SendEmmed(s, m, fmt.Sprintf("http://osu.ppy.sh/users/%s", data.Id), "Cтатистика игрока **"+data.Username+"**", "Osu stats", &fields)
+	SendEmmed(s, m, fmt.Sprintf("http://osu.ppy.sh/users/%d", data.Id), "Cтатистика игрока **"+data.Username+"**", "Osu stats", &fields)
 }

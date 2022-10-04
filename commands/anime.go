@@ -10,12 +10,18 @@ import (
 	"golang.org/x/net/html"
 )
 
-var AnimeUrl = "https://v2.vost.pw/"
+var (
+	AnimeUrl = "https://v2.vost.pw/"
 
-var AnimeCommand = Command{
-	Name: "Anime",
-	Help: "Получение списка послежних вышедших аниме и ссылка на них.",
-	Exec: ViewAnime,
+	animeCommand = Command{
+		CommandName: "anime",
+		Help:        "Получение списка послежних вышедших аниме и ссылка на них.",
+		Exec:        ViewAnime,
+	}
+)
+
+func init() {
+	NewCommand(&animeCommand)
 }
 
 type Anime struct {
@@ -35,7 +41,7 @@ func getHtml(url string) (string, error) {
 	}
 
 	if html.StatusCode != 200 {
-		fmt.Println("Bed request status code")
+		fmt.Print(fmt.Sprintf("Bed request status code, %d", html.StatusCode))
 	}
 
 	defer html.Body.Close()
